@@ -30,11 +30,11 @@ html, body {
     letter-spacing:0.5cm;
     color: rgba(255, 235, 205, 0.445);
     text-shadow: 5px 5px 0px #b10f65d3 ,
-                10px 10px 0px rgba(0, 0, 0, 0.219);           
+                 10px 10px 0px rgba(0, 0, 0, 0.219);           
     font-family: "Inter", sans-serif;
     } 
 
-#playButton{
+#playButton {
     font-family: "Inter", sans-serif;
     font-size:60px;
     font-weight:520;
@@ -45,7 +45,103 @@ html, body {
     color: rgba(29, 29, 29, 0.712);
     background-color:rgba(153, 59, 111, 0.685);
     } 
+#playButton:hover{
+    background-color:rgba(144, 9, 83, 0.685);
+    font-weight:600;
+}
 
-#movementKeys{
-    font-size: 30px;
+#movementKeys{font-size: 30px;}
+
+#countScore{
+    display:none;
+    font-family:monospace;
+    font-style: oblique;
+    font-size: 40px;
+    font-weight: 900;
+    text-align:left;
     }
+#drawScore {
+    position: absolute;
+    top: 8%;
+    left:2%;
+    width:12%;
+    height: 8%;
+    }
+#drawCoin {
+    position: absolute;
+    top: 8%;
+    left: 87%;
+    width:12%;
+    height: 8%;
+    }
+#score{
+    position: absolute;
+    top: 2%;
+    left: 150px;
+    width:12%;
+    height: 8%;
+}
+#coins{
+    position: absolute;
+    top: 2%;
+    left: 70%;
+    width:12%;
+    height: 8%;
+}
+
+ #level2{
+    position: absolute;
+    font-family: "Inter", sans-serif;
+    display: none;
+    top: 40%;
+    left: 45%;
+    width:30%;
+    height: 8%;
+    font-size:100px;
+    font-weight:520;
+    animation-duration:5s;
+    animation-name: level2Animation;
+    /* transform: scale(2, 2); */ /*OR line 105*/ 
+}  
+@keyframes level2Animation {
+    from {font-size: 0px;} to {font-size: 100px;}
+    from {color: black;} to {color: green;}
+    /* 100% {transform: rotate(360deg);} */  /*7a5od ra2yohom badal 105 w 102*/
+    
+}
+
+#pauseGame{
+    display:none;
+    position: absolute;
+    border-color: transparent;
+    background-color:rgb(175, 170, 170); 
+    border-radius: 10px;
+    left:2%;
+    top: 2%;
+    width:3%;
+    height: 4%;
+    font-size:25px;
+}
+#pauseGame:hover{ background-color: rgb(66, 66, 70);}
+
+#continueGame {
+    display:none;
+    position: absolute;
+    font-family: "Inter", sans-serif;
+    left:43%;
+    top: 30%;
+    width:16%;
+    height:15%;
+    font-size:60px;
+    font-weight:520;
+    padding:5px;
+    border-width: 5px;
+    border-style: outset;
+    border-color: blanchedalmond;
+    color: rgba(29, 29, 29, 0.712);
+    background-color:rgba(153, 59, 111, 0.685);
+    } 
+#continueGame:hover{
+    background-color:rgba(144, 9, 83, 0.685);
+    font-weight:600;
+}

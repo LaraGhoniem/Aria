@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html>
+<head>
+	
+</head>
+
+<body>
+<canvas id="scene"></canvas>
+	<link rel="stylesheet" href="AriaStyles.css">
+	<!----------------------------------------- MENU ----------------------------------------->
+	<div id="menu"> 
+		<div id="title">ARIA</div><br>
+				<button id="playButton">PLAY</button><br><br><br>
+		<div id="movementKeys">
+			Use <img src="WASD.png" 	alt="keyboardArrows" style="width: 40px; height: 40px; "> to move<br>
+			Use <img src="spacebar.png" alt="keyboardSpaceBar" style="width: 40px; height: 40px;"> to jump<br>
+		</div>
+	</div>
+
+	
+	<div id="countScore">
+		<div id="drawScore">Score:<div id="score">0</div></div>
+		<div id="drawCoin">Coins:<div id="coins">0</div></div>
+	</div>
+
+	<button id="pauseGame">||</button>
+	<button id="continueGame">Continue</button>
+
+	<div id="level2">Level 2</div>
+
+</body>
+
+<!---------------------------------------- FOR THE KEYBOARD ----------------------------------------->
+<script src="threex.keyboardstate.js"></script>
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.124.0/build/three.module.js';
+
+/*-----------------------------  HEIGHT AND WIDTH OF THE WINDOW --------------------------------------*/
+var ww = window.innerWidth, wh = window.innerHeight;
+
+/*----------------------------- FOR SHAPES --------------------------------------*/
+var sphere,startPoint,pinkbox=[], greenbox=[],diamond=[],finalGround,diamondCollision=[],sphereCollision,
+	PinkBoxMaterial,PinkBoxGeometry,GreenBoxMaterial,GreenBoxGeometry;
+	const group = new THREE.Group();
+
+/*----------------------------- FOR THE KEYBOARD & LOOPING --------------------------------------*/
+var keyboard = new THREEx.KeyboardState();
+var clock = new THREE.Clock();
+var  delta;
+var score=0;
+var coins=0, check=true;
+
+/*----------------------------- FOR JUMPING --------------------------------------*/
+var dy=0,onGround=true,drag=0.99;
+const grav=0.1;
+
+/*----------------------------- OTHER VARIABLES --------------------------------------*/
+var canvas, scene, camera, renderer, light;
+var nspace=-100,space=100, i, dnspace=-100,dspace=100, inGame=false;
+
+init();
+animate();
+
+/*----------------------------- STARTING SCREEN --------------------------------------*/
+document.getElementById("playButton").addEventListener("click", start);
+function start(){
+	inGame=true;
+	menu.style.display="none";
+	continueGame.style.display="none";
+	countScore.style.display="block";
+	pauseGame.style.display="block";
+}
+/*----------------------------- PAUSE SCREEN --------------------------------------*/
+document.getElementById("pauseGame").addEventListener("click", pause);
+function pause(){
+	inGame=false;
+	countScore.style.display="none";
+	continueGame.style.display="block";
+}
+/*----------------------------- CONTINUE SCREEN --------------------------------------*/
+document.getElementById("continueGame").addEventListener("click", CONTINUE);
+function CONTINUE(){
+	inGame=true;
+	countScore.style.display="block";
+	continueGame.style.display="none";
+}
+
+/*----------------------------- WEBGL RENDERER --------------------------------------*/
+function init(){
+	canvas = document.querySelector('#scene');
+    renderer = new THREE.WebGLRenderer({canvas});
+	renderer.setClearColor(0xFFC0CB); 
+	renderer.setSize(canvas.clientWidth,canvas.clientHeight);
+
+/*----------------------------- SCENE --------------------------------------*/
+	scene = new THREE.Scene();
+
+/*----------------------------- CAMERA --------------------------------------*/
+	camera = new THREE.PerspectiveCamera( 50, ww / wh, 1, 10000);
+	scene.add(camera);
+	
+/*----------------------------- LIGHT --------------------------------------*/
+	light = new THREE.DirectionalLight(0xffffff, 1);
+	light.position.set( 0, 500, 500 );
+	scene.add(light);
+
+/*----------------------------- CREATE SHAPES --------------------------------------*/
+    createShapes();
+	createDiamonds();
+}
+
+/*----------------------------- Functions to go to the next LEVEL --------------------*/
+function sleep(ms) {
+  return new Promise(count => setTimeout(count, ms));
+}
+
+async function levelUp(){
+	if(sphere.position.z<=finalGround.position.z-5000){//5250
+		inGame=false;
+		level2.style.display="block";
+		await sleep(6000);
+		window.location.replace("Aria2.html");
+	}
+}  
+
+/*----------------------------- CREATE OBJECTS --------------------------------------*/
+/*-----------------------------   PINK BOX ------------------------------------------*/
+function createShapes(){
+	const PinkBoxMaterial = new THREE.MeshLambertMaterial({color:0xFF1493});
+	const PinkBoxGeometry = new THREE.CylinderGeometry( 50, 50, 100);
+	for (i=0;i<32;i++){
+		pinkbox[i] = new THREE.Mesh(PinkBoxGeometry, PinkBoxMaterial);
+		if(i%2==0)
+			{
+				pinkbox[i].position.x =150; 
+			}
+		else
+			{
+				pinkbox[i].position.x =-100; 
+			}
+		
+		pinkbox[i].position.z=space;
+		scene.add(pinkbox[i]);
+		space-=300;
+	} 
+
+/*----------------------------- GREEN BOX --------------------------------------*/
+	GreenBoxMaterial= new THREE.MeshLambertMaterial({color:0x00FF00});
+    GreenBoxGeometry = new THREE.CylinderGeometry( 50, 50, 60);
+    var topc=[];
+	for (i=0;i<20;i++){
+		topc[i]= new THREE.Mesh(GreenBoxGeometry,GreenBoxMaterial);
+		if(i%2==0){
+		topc[i].position.x =265;
+		}
+		else{
+		topc[i].position.x =15; 
+		}
+		topc[i].position.z=nspace;
+		scene.add(topc[i]);
+		nspace-=500;
+	}
+
+/*----------------------------- STARTING POINT --------------------------------------*/
+	const startPointGeometry = new THREE.BoxGeometry( 300, 30, 150 );
+	const startPointMaterial = new THREE.MeshLambertMaterial( {color: 0xAA1F71 } );
+	startPoint = new THREE.Mesh( startPointGeometry, startPointMaterial);
+	startPoint.position.x=80;
+	startPoint.position.y=20;
+	startPoint.position.z=450;
+	scene.add(startPoint);
+
+/*----------------------------- GROUND --------------------------------------*/
+	const ground = new THREE.PlaneGeometry( 1000,10500 );
+    ground.rotateX(-Math.PI/2);
+    const groundColor = new THREE.MeshLambertMaterial( {color: 0xf5f5dc, side: THREE.DoubleSide} );
+    finalGround = new THREE.Mesh( ground, groundColor );
+    finalGround.position.x=150;
+    finalGround.position.y=-48;
+    finalGround.position.z=-4600;
+    scene.add( finalGround );
+
+/*----------------------------- BALL --------------------------------------*/
+	const SphereMaterial = new THREE.MeshLambertMaterial({color:0x0CD7C0});
+	const SphereGeometry = new THREE.SphereGeometry( 26, 32, 10 );
+	sphere = new THREE.Mesh(SphereGeometry, SphereMaterial);
+	sphere.position.x =80;
+	sphere.position.y = 70; 
+	sphere.position.z=500;
+    scene.add(sphere);
+	
+}	
+
+/*----------------------------- ROTATE OBJECTS --------------------------------------*/
+function rotateShapes(){ 
+    for (i=0;i<32;i++){
+        if(i%2==0)
+        {
+			pinkbox[i].rotateY(0.015);	
+        }
+        else
+            {
+				pinkbox[i].translateX(-60);
+				pinkbox[i].rotateY(0.015);
+				pinkbox[i].translateX(60);
+            }
+    }
+}
+
+/*----------------------------- CREATE DIAMONDS --------------------------------------*/
+function createDiamonds(){
+	var diamondMaterial = new THREE.MeshLambertMaterial({color:0xD3D3D3});
+	var diamondGeometry = new THREE.SphereGeometry( 15, 15, 2 );
+
+	for (i=0;i<16;i++){
+			diamond[i] = new THREE.Mesh(diamondGeometry, diamondMaterial);
+			if(i%2==0 )
+				{
+				diamond[i].position.x =265; 
+				diamond[i].position.y =80;
+				diamond[i].position.z=dnspace;
+				}
+			else
+				{
+				diamond[i].position.x =-100; 
+				diamond[i].position.y =80; 
+				diamond[i].position.z=dspace;
+				}
+			scene.add(diamond[i]);
+			dnspace-=500;
+			dspace-=300;
+		}
+}
+
+/*----------------------------- ROTATE DIAMONDS --------------------------------------*/
+function rotateDiamonds(){
+	for (i=0;i<16;i++){
+		if(i%2==0)
+			{
+			diamond[i].rotation.y += 0.01;
+			}
+		else
+			{
+			   diamond[i].translateX(-60);
+               diamond[i].rotateY(0.015);
+               diamond[i].translateX(60);
+			}
+	}
+}
+
+/*----------------------------- ANIMATION LOOP --------------------------------------*/
+function animate() {
+        requestAnimationFrame(animate);
+        render();
+		keyb();
+		levelUp();
+		if(inGame==true){
+		rotateShapes();
+		rotateDiamonds();
+		}
+}
+
+/*----------------------------- KEYBOARD INPUT --------------------------------------*/
+function keyb(){
+	if(inGame==true){
+	delta = clock.getDelta(); 
+	var moveDistance = 500 * delta; 
+	
+	if ( keyboard.pressed("w") ){
+		sphere.translateZ( -moveDistance*3 );
+		score+=0.1;
+		let scoreUpdate=parseInt(score);
+		document.getElementById("score").innerHTML=scoreUpdate;
+	}
+	if ( keyboard.pressed("s") ){
+		sphere.translateZ(  moveDistance*3 );
+		score-=0.1;
+		let scoreUpdate=parseInt(score);
+		if(scoreUpdate<=0){
+			scoreUpdate=0;
+			}
+		document.getElementById("score").innerHTML=scoreUpdate;
+	}
+	if ( keyboard.pressed("a") ){
+		sphere.translateX( -moveDistance );
+	}
+	if ( keyboard.pressed("d") ){
+		sphere.translateX(  moveDistance );
+	}
+			
+	if(keyboard.pressed("space")){
+		if(onGround)
+		dy=-10;
+	}
+	
+	dy*=drag;
+	dy+=grav;
+	sphere.position.y-=dy;
+
+	if(sphere.position.y<70){
+		sphere.position.y=70;
+		dy=0;
+		onGround=true;
+	}
+	else onGround=false;
+
+	sphereCollision=new THREE.Box3().setFromObject(sphere);
+		for (i=0;i<16;i++){
+            diamondCollision[i]=new THREE.Box3().setFromObject(diamond[i]);
+            var checkCollision=(sphereCollision.intersectsBox(diamondCollision[i]));
+            if(checkCollision){
+                scene.remove(diamond[i]);
+				diamond[i].position.x=1000; //Ba8ayar el position 3ashan el coins matzedsh w 5alas (ay raqam kebeer w 5alas)
+				coins++;
+	 			document.getElementById("coins").innerHTML=coins;
+            }
+        }
+		
+}
+
+/*----------------------------- SET CAMERA TO MOVE WITH SPHERE --------------*/
+
+	var nCamera= new THREE.Vector3(0,150,500);
+	var camerap = nCamera.applyMatrix4(sphere.matrixWorld);
+	camera.position.set(camerap.x,camerap.y,camerap.z);
+	camera.lookAt(sphere.position);
+}
+
+/*----------------------------- RENDER --------------------------------------*/
+function render() 
+{
+	renderer.render( scene, camera );
+}
+
+</script>
+</html>
