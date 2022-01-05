@@ -97,19 +97,10 @@ function init(){
 	scene = new THREE.Scene();
 
 /*----------------------------- CAMERA --------------------------------------*/
-	// camera = new THREE.PerspectiveCamera( 50, ww / wh, 1, 10000);
-	// scene.add(camera);
 	camera = new THREE.PerspectiveCamera(  55, ww/wh,45,30000);
 	camera.position.set(-100, 300, -2100); //xyz
 	
 /*----------------------------- LIGHT --------------------------------------*/
-	// light = new THREE.DirectionalLight(0xffffff, 1);
-	// light.position.set( 0, 500, 500 );
-	// scene.add(light);
-
-	// controls = new THREE.OrbitControls(camera);
-    // controls.minDistance= 1500;
-    // controls.maxDistance= 1500;
 	light = new THREE.DirectionalLight(0xffffff, 1);
 	light.position.set(0, 250, 700);
 	scene.add(light); 
