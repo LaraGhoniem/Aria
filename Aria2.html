@@ -1,3 +1,506 @@
+<!DOCTYPE html>
 <html>
-    <h1>Level2</h1>
+<body>
+<canvas id="scene"></canvas>
+	<link rel="stylesheet" href="AriaStyles.css">
+	<div id="blocker" >
+		<div id="instructions" style="cursor:default">
+			<p style="font-size:40px">
+				GAME OVER
+			</p>
+			<p style="font-size:20px">
+				click anywhere to play again
+			</p>
+		</div>
+	</div>
+
+	<div id="menu">
+		<div id="title" style="cursor:default">ARIA</div><br>
+		<button id="playButton">PLAY</button><br><br><br>
+			<div id="movementKeys" style="cursor:default">
+				Use <img src="WASD.png" alt="keyboardArrows" style="width: 40px; height: 40px; "> to move<br>
+				Use <img src="spacebar.png" alt="keyboardSpaceBar" style="width: 40px; height: 40px;"> to jump<br>
+			</div>
+		</div>
+	</div>
+
+	<div id="countScore" style="cursor:default">
+		<div id="drawScore">Score:<div id="score">0</div></div>
+		<div id="drawCoin">coins:<div id="coins">0</div></div>
+	</div>
+
+	<button id="pauseGame">||</button>
+	<button id="continueGame">Continue</button>
+	<button id="exitGame">Exit</button>
+
+	<div id="win">You Win</div>
+
+</body>
+
+
+{% comment %} <!---------------------------------------- FOR THE KEYBOARD -----------------------------------------> {% endcomment %}
+<script src="threex.keyboardstate.js"></script>
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.124.0/build/three.module.js';
+import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.124.0/examples/jsm/loaders/GLTFLoader.js';
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.124.0/examples/jsm/controls/OrbitControls.js';
+import { Water } from 'https://cdn.jsdelivr.net/npm/three@0.124.0/examples/jsm/objects/Water.js';
+
+/*-----------------------------  HEIGHT AND WIDTH OF THE WINDOW --------------------------------------*/
+var ww = window.innerWidth, wh = window.innerHeight;
+
+/*-----------------------------FOR SHAPES & OBJECTS--------------------------------------*/
+var plane,plane1,sphere,startPoint,pinkbox=[], greenbox=[],diamond=[],material=[],
+	PinkBoxMaterial,PinkBoxGeometry,GreenBoxMaterial,GreenBoxGeometry, loader, dog,loader1,texture,mesh,planeGeo,
+	planeMat,moveRight=true,moveUp=true,counter=0,counter1=0,icePlaneLeft,icePlaneRight,endPoint;
+/*-----------------------------FOR THE KEYBOARD & LOOPING --------------------------------------*/
+var keyboard = new THREEx.KeyboardState();
+var clock = new THREE.Clock();
+var delta;
+
+/*-----------------------------FOR JUMPING --------------------------------------*/
+var dy=0,onGround=true;
+const grav=0.1;
+
+/*-----------------------------FOR COLLISIONS --------------------------------------*/
+var planebb, dogbb, pinkboxbb=[],greenboxbb=[],diamondbb=[],startPointbb,startPointCollision, greenboxCollision,
+	pinkboxCollision, diamondCollision, planeCollision, ground, onGroundpink=false,onGroundgreen=false,onGroundstartPoint=false,
+	icePlaneLeftbb,icePlaneRightbb,icePlaneRightCollision,icePlaneLeftCollision,endPointbb,	endPointCollision,onGroundendPoint=false;
+
+/*-----------------------------OTHER VARIABLES --------------------------------------*/
+var instructions, blocker;
+var canvas, scene, camera, renderer, light, controls;
+//var nspace=-100,space=100, i, dnspace=-100,dspace=100, inGame=false;
+var nspace=4300,space=4300, i, dnspace=4300,dspace=4300, inGame=false;
+var score=0,coins=0;
+
+init();
+animate();
+
+
+/*----------------------------- STARTING SCREEN --------------------------------------*/
+document.getElementById("playButton").addEventListener("click", start);
+function start(){
+	inGame=true;
+	menu.style.display="none";
+	document.body.requestPointerLock();
+	continueGame.style.display="none";
+	countScore.style.display="block";
+	pauseGame.style.display="block";
+}
+/*----------------------------- PAUSE SCREEN --------------------------------------*/
+document.getElementById("pauseGame").addEventListener("click", pause);
+function pause(){
+	inGame=false;
+	countScore.style.display="none";
+	continueGame.style.display="block";
+	exitGame.style.display="block";
+}
+/*----------------------------- CONTINUE SCREEN --------------------------------------*/
+document.getElementById("continueGame").addEventListener("click", CONTINUE);
+function CONTINUE(){
+	inGame=true;
+	countScore.style.display="block";
+	continueGame.style.display="none";
+	exitGame.style.display="none";
+}
+/*----------------------------- EXIT SCREEN --------------------------------------*/
+document.getElementById("exitGame").addEventListener("click", returnToStart);
+function returnToStart(){
+	window.location.replace("Aria.html");
+}
+
+function init(){
+/*----------------------------- WEBGL RENDERER--------------------------------------*/
+	canvas = document.querySelector('#scene');
+    renderer = new THREE.WebGLRenderer({canvas});
+	renderer.setClearColor(0xFFC0CB); 
+	renderer.setSize(canvas.clientWidth,canvas.clientHeight);
+
+/*----------------------------- SCENE --------------------------------------*/
+	scene = new THREE.Scene();
+	camera = new THREE.PerspectiveCamera(  55, ww/wh,45,30000);
+	camera.position.set(84, 210, 5300);
+	scene.add(camera);
+/*----------------------------- LIGHT --------------------------------------*/
+	light = new THREE.AmbientLight(0xffffff, 1.5);
+	light.position.set( 0, 500, 500 );
+	scene.add(light);
+
+/*----------------------------- CREATE SHAPES --------------------------------------*/
+    createShapes();
+	createDiamonds();
+}
+
+/*----------------------------- Functions to go to the next LEVEL --------------------*/
+function sleep(ms) {
+  return new Promise(count => setTimeout(count, ms));
+}
+
+/*----------------------------- CREATE OBJECTS --------------------*/
+function createShapes(){
+	
+	const urls = [
+	'sunset/sunset_ft.png','sunset/sunset_bk.png',
+	'sunset/sunset_up.png','sunset/sunset_dn.png',
+	'sunset/sunset_rt.png', 'sunset/sunset_lf.png'
+	];
+	
+	const textureCube = new THREE.CubeTextureLoader().load( urls );
+
+	scene.background = textureCube;
+
+	const urls2 = [
+	'bluecloud/bluecloud_ft.jpg','bluecloud/bluecloud_bk.jpg',
+	'bluecloud/bluecloud_up.jpg','bluecloud/bluecloud_dn.jpg',
+	'bluecloud/bluecloud_rt.jpg', 'bluecloud/bluecloud_lf.jpg'
+	];
+	const textureCube2 = new THREE.CubeTextureLoader().load( urls2 );
+	textureCube2.mapping = THREE.CubeRefractionMapping;
+
+/*----------------------------- PINK BOX --------------------*/
+	const PinkBoxGeometry = new THREE.ConeGeometry( 100,1, 7,53,0,6);
+    const PinkBoxMaterial = new THREE.MeshPhongMaterial( { color: 0x6e3336, envMap: textureCube, reflectivity: 0.6} );
+    for (i=0;i<13;i++){
+        pinkbox[i] = new THREE.Mesh(PinkBoxGeometry, PinkBoxMaterial);
+		pinkbox[i].position.x=0; 
+        pinkbox[i].position.y=50;
+        pinkbox[i].position.z=space-250;
+        scene.add(pinkbox[i]);
+        space-=500;
+    }
+
+/*--------------------------------------------------------- GREEN BOX ------------------------------------------------------------*/
+	GreenBoxMaterial=new THREE.MeshPhongMaterial( { color: 0x6e3336, envMap: textureCube2, reflectivity: 0.9} );
+	GreenBoxGeometry = new THREE.CylinderGeometry( 120, 70, 15,3);
+    for (i=0;i<14;i++){
+        greenbox[i]= new THREE.Mesh(GreenBoxGeometry,GreenBoxMaterial);
+        greenbox[i].position.x=240;
+		greenbox[i].position.y=40;
+        greenbox[i].position.z=nspace; 
+        scene.add(greenbox[i]);
+        nspace-=500;
+    }
+
+/*--------------------------------------------------------- STARTING POINT ------------------------------------------------------------*/
+	
+	const startPointGeometry = new THREE.BoxGeometry( 300, 10, 300 );
+	const startPointMaterial = new THREE.MeshPhongMaterial( { color: 0x6e3336, envMap: textureCube2, refractionRatio: 0.2 , reflectivity: 0.9} );
+	startPoint = new THREE.Mesh( startPointGeometry, startPointMaterial);
+	startPoint.position.x=80;
+	startPoint.position.y=30;
+	startPoint.position.z=4750;
+	scene.add(startPoint);
+/*--------------------------------------------------------- ENDING POINT ------------------------------------------------------------*/
+	const endpointGeometry = new THREE.BoxGeometry( 300, 10, 300 );
+	const endpointMaterial = new THREE.MeshPhongMaterial( { color: 0xccfffd, envMap: textureCube, refractionRatio: 0.2 } );
+	endPoint = new THREE.Mesh( endpointGeometry, endpointMaterial);
+	endPoint.position.x=80;
+	endPoint.position.y=30;
+	endPoint.position.z=-2700;
+	scene.add(endPoint);
+/*--------------------------------------------------------- PLANE ------------------------------------------------------------*/
+	const planeGeometry = new THREE.PlaneGeometry( 850, 10000  ); 
+	plane = new Water( planeGeometry, {
+						textureWidth: 512,
+						textureHeight: 512,
+						waterNormals: new THREE.TextureLoader().load( 'textures/water.jpg', function ( texture ) {
+							texture.wrapS = texture.wrapT = THREE.RepeatWrapping;}),
+						waterColor: 0xD4F1F9
+					} );
+
+	plane.rotateX(-Math.PI/2);
+	plane.position.x=100;
+	scene.add( plane );
+
+	loader1 = new THREE.TextureLoader();
+	texture = loader1.load('textures/ice5.jpg');
+    planeGeo = new THREE.PlaneGeometry(650, 10000);
+	planeMat = new THREE.MeshBasicMaterial({ map: texture});
+    icePlaneLeft = new THREE.Mesh(planeGeo, planeMat);
+	icePlaneLeft.rotateX(-Math.PI/2);
+	icePlaneLeft.position.x=-650;
+    scene.add(icePlaneLeft);
+
+	loader1 = new THREE.TextureLoader();
+	texture = loader1.load('textures/ice5.jpg');
+    planeGeo = new THREE.PlaneGeometry(650, 10000);
+	planeMat = new THREE.MeshBasicMaterial({ map: texture,color:0xF9F4F3});
+    icePlaneRight = new THREE.Mesh(planeGeo, planeMat);
+	icePlaneRight.rotateX(-Math.PI/2);
+	icePlaneRight.position.x=850;
+    scene.add(icePlaneRight);
+
+	loader1 = new THREE.TextureLoader();
+	texture = loader1.load('textures/ice.jpg');
+    planeGeo = new THREE.PlaneGeometry(2500, 10000);
+	planeMat = new THREE.MeshBasicMaterial({ map: texture});
+    mesh = new THREE.Mesh(planeGeo, planeMat);
+	mesh.rotateX(-Math.PI/2);
+	mesh.position.x=2425;
+    scene.add(mesh);
+
+	loader1 = new THREE.TextureLoader();
+	texture = loader1.load('textures/ice.jpg');
+    planeGeo = new THREE.PlaneGeometry(2500, 10000);
+	planeMat = new THREE.MeshBasicMaterial({ map: texture});
+    mesh = new THREE.Mesh(planeGeo, planeMat);
+	mesh.rotateX(-Math.PI/2);
+	mesh.position.x=-2225;
+    scene.add(mesh);
+	
+	loader = new GLTFLoader();
+	loader.load('scene.gltf', function(gltf){
+		scene.add(gltf.scene);
+		dog=gltf.scene;
+		dog.position.set(80,120,4750);
+		dog.rotation.set(0.3,59.7,0);
+		dog.scale.set(60,60,60);
+		ground=105;
+		render();
+	});
+}
+
+/*--------------------------------------------------------- TRANSLATE OBJECTS ------------------------------------------------------------*/
+function rotateShapes(){ 
+    for (i=0;i<14;i++){
+		if(i<13)
+        {if(moveUp){
+                if(counter<2020){
+                    pinkbox[i].translateZ(1);
+                    counter++;
+                }
+				else
+					moveUp = false;
+		}
+		if(!moveUp){
+			if(counter>-2020){
+				pinkbox[i].translateZ(-1);
+				counter--;
+			}
+			else
+				moveUp = true;
+		} }
+
+		greenbox[i].rotateY(0.01);
+	}
+}
+
+/*--------------------------------------------------------- CREATE DIAMONDS ------------------------------------------------------------*/
+function createDiamonds(){
+	var diamondMaterial = new THREE.MeshLambertMaterial({color:0xD3D3D3});
+    var diamondGeometry = new THREE.TorusKnotGeometry( 15,1,55,3,17,20 );
+
+    for (i=0;i<13;i++){
+		diamond[i] = new THREE.Mesh(diamondGeometry, diamondMaterial);
+		if(i%2==0 )
+			{
+			diamond[i].position.x =240; 
+			diamond[i].position.y =100;
+			diamond[i].position.z=dnspace;
+			}
+		else
+			{
+			diamond[i].position.x =0; 
+			diamond[i].position.y =100; 
+			diamond[i].position.z=dspace-250;
+			}
+		scene.add(diamond[i]);
+		dnspace-=500;
+		dspace-=500;
+	}
+}
+
+/*--------------------------------------------------------- ROTATE DIAMONDS -----------------------------------------------------------*/
+	function rotateDiamonds(){
+		for (i=0;i<13;i++){
+			if(i%2==0)
+				{
+				diamond[i].rotation.y += 0.01;
+				}
+			else
+				{
+					if(moveUp){
+					if(counter<2020){
+						diamond[i].translateZ(1);
+						counter++;
+					}
+				else
+					moveUp = false;
+				}
+
+				if(!moveUp){
+					if(counter>-2020){
+						diamond[i].translateZ(-1);
+						counter--;
+					}
+				else
+					moveUp = true;
+				} 
+
+			}
+		}
+	}
+
+/*--------------------------------------------------------- ANIMATION LOOP  -----------------------------------------------------------*/
+function animate() {
+	requestAnimationFrame(animate);
+	render();
+	keyb();
+	if(inGame==true){
+	rotateShapes();
+	rotateDiamonds();
+	}
+}
+
+/*---------------------------------------------------------  KEYBOARD INPUT  -----------------------------------------------------------*/
+async function keyb(){
+	if(inGame==true&&dog){
+		delta = clock.getDelta();
+		var moveDistance = 150 * delta; 
+		
+		if ( keyboard.pressed("w") ){
+			dog.translateZ( moveDistance*3 );
+			score+=0.1;
+			let scoreUpdate=parseInt(score);
+			document.getElementById("score").innerHTML=scoreUpdate;
+
+		}
+		if ( keyboard.pressed("s") ){
+			if(dog.position.z<=4837)
+			{	dog.translateZ(  -moveDistance*3 );
+				score-=0.1;
+			let scoreUpdate=parseInt(score);
+			if(scoreUpdate<=0){
+				scoreUpdate=0;
+			}
+			document.getElementById("score").innerHTML=scoreUpdate;
+			}
+		}
+		if ( keyboard.pressed("a") )
+			dog.translateX( moveDistance );
+		if ( keyboard.pressed("d") )
+			dog.translateX(  -moveDistance );
+		if( keyboard.pressed("escape")){
+			document.exitPointerLock();
+		}
+		if(keyboard.pressed("space")){
+			if(onGround)
+			dy=-5;
+		}
+	
+		dy+=grav;
+	 	dog.position.y-=dy;
+
+		if(dog.position.y<=ground){
+			dog.position.y=ground;
+			dy=0;
+			onGround=true;
+		}
+		else onGround=false;
+	
+		/////////////////////////////////////
+
+		onGroundpink=false,onGroundgreen=false,onGroundstartPoint=false;
+
+		dogbb=new THREE.Box3().setFromObject(dog);
+		planebb=new THREE.Box3().setFromObject(plane);
+		planeCollision=(dogbb.intersectsBox(planebb));
+		startPointbb=new THREE.Box3().setFromObject(startPoint);
+		startPointCollision=(dogbb.intersectsBox(startPointbb));
+
+		icePlaneLeftbb=new THREE.Box3().setFromObject(icePlaneLeft);
+		icePlaneLeftCollision=(dogbb.intersectsBox(icePlaneLeftbb));
+		icePlaneRightbb=new THREE.Box3().setFromObject(icePlaneRight);
+		icePlaneRightCollision=(dogbb.intersectsBox(icePlaneRightbb));
+		endPointbb=new THREE.Box3().setFromObject(endPoint);
+		endPointCollision=(dogbb.intersectsBox(endPointbb));
+
+		if(endPointCollision){
+			ground=105;
+			onGround=true;
+			onGroundendPoint=true;
+		}
+		if(icePlaneRightCollision||icePlaneLeftCollision)///
+			ground=190;
+
+		if(startPointCollision){
+			ground=105;
+			onGround=true;
+			onGroundstartPoint=true;
+		}
+		for (i=0;i<13;i++){
+			diamondbb[i]=new THREE.Box3().setFromObject(diamond[i]);
+			diamondCollision=(dogbb.intersectsBox(diamondbb[i]));
+			if(diamondCollision){
+                scene.remove(diamond[i]);
+			    diamond[i].position.x=1000; 
+			    coins++;
+	 		    document.getElementById("coins").innerHTML=coins;
+			}
+		}
+		for (i=0;i<14;i++){
+			if(i<13)
+			{
+				pinkboxbb[i]=new THREE.Box3().setFromObject(pinkbox[i]);
+				pinkboxCollision=(dogbb.intersectsBox(pinkboxbb[i]));
+			}
+			greenboxbb[i]=new THREE.Box3().setFromObject(greenbox[i]);
+			greenboxCollision=(dogbb.intersectsBox(greenboxbb[i]));
+			if(greenboxCollision||pinkboxCollision){
+				ground=120;
+				onGround=true;
+				onGroundgreen=true;
+				onGroundpink=true;
+			}
+		}	
+		
+		if(endPointCollision){
+			inGame=false;
+			win.style.display="block";
+			pauseGame.style.display="none";
+			document.exitPointerLock();
+			await sleep(6000);
+			window.location.replace("Aria.html");
+		}
+		if (onGroundpink==false && onGroundgreen==false && onGroundstartPoint==false && onGroundendPoint==false){
+			onGround=false;
+			ground=40;
+		}
+		
+		if(planeCollision||icePlaneRightCollision||icePlaneLeftCollision){
+			if(planeCollision)
+				dog.position.y=20;
+			inGame=false;
+			document.exitPointerLock();
+			pauseGame.style.display="none";
+			blocker = document.getElementById( 'blocker' );
+			instructions = document.getElementById( 'instructions' );
+
+			instructions.style.display = 'block';
+			blocker.style.display = 'block';
+			
+			blocker.addEventListener( 'click', function () {
+				instructions.style.display = 'none';
+				blocker.style.display = 'none';
+				inGame=true;
+				location.reload();
+			} );
+		}
+	}
+	if(dog&&!planeCollision){
+		var nCamera= new THREE.Vector3(0,4,-7);
+		var camerap = nCamera.applyMatrix4(dog.matrixWorld);
+		camera.position.set(camerap.x,camerap.y,camerap.z);
+		camera.lookAt(dog.position);
+	}
+}
+
+/*---------------------------------------------------------  RENDER  -----------------------------------------------------------*/
+function render() {
+	renderer.render( scene, camera );
+}
+
+</script>
 </html>
